@@ -1,0 +1,251 @@
+{
+	"info": {
+		"_postman_id": "firmagob-api-collection-v1",
+		"name": "Firma GOB (OGTIC) - Integración Firma Desatendida & Callback",
+		"description": "Colección completa de Postman para probar el ciclo de integración de Firma Desatendida (Firma en Servidor) y Webhook Callback con Firma GOB (OGTIC / Viafirma Inbox v3).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "trackingId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "publicAccessId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "documentId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "0. Health Check (Salud del Servicio)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/health",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"health"
+					]
+				},
+				"description": "Verifica que el servicio esté arriba y muestra la configuración activa (Modo Mock o Live)."
+			},
+			"response": []
+		},
+		{
+			"name": "1. Iniciar Firma Desatendida (POST /api/v1/documents/sign)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"if (jsonData.trackingId) {",
+							"    pm.collectionVariables.set('trackingId', jsonData.trackingId);",
+							"    console.log('TrackingId guardado:', jsonData.trackingId);",
+							"}",
+							"if (jsonData.firmagob) {",
+							"    pm.collectionVariables.set('publicAccessId', jsonData.firmagob.publicAccessId);",
+							"    pm.collectionVariables.set('documentId', jsonData.firmagob.documentId);",
+							"    console.log('PublicAccessId guardado:', jsonData.firmagob.publicAccessId);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"sender\": {\n    \"userCode\": \"40200000000\",\n    \"entityCode\": \"default\"\n  },\n  \"addresseeLines\": [\n    {\n      \"addresseeGroups\": [\n        {\n          \"isOrGroup\": false,\n          \"userEntities\": [\n            {\n              \"userCode\": \"40200000000\",\n              \"entityCode\": \"default\",\n              \"action\": \"SIGN\"\n            }\n          ]\n        }\n      ]\n    }\n  ],\n  \"internalNotification\": [],\n  \"subject\": \"Firma Desatendida de Documento Oficial\",\n  \"message\": \"Solicitud generada automáticamente para firma en servidor.\",\n  \"reference\": \"EXP-2026-00981\",\n  \"verificationAccess\": {\n    \"type\": \"ANONYMOUS\"\n  },\n  \"senderNotificationLevel\": \"ALL\",\n  \"signatureLevel\": \"ALL\",\n  \"notificationUrl\": \"http://localhost:8000/api/v1/firmagob/callback\",\n  \"callbackCode\": \"CALLBACK_INSTITUCIONAL_01\",\n  \"useDefaultStamp\": true,\n  \"documentsToSign\": [\n    {\n      \"filename\": \"Prueba_doc.pdf\",\n      \"data\": \"JVBERi0xLjQKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nCtUMFDAAEZ0lFpKUWWlggpUQCw1sTgxLz1fISSxJFWhOD+3IDUvXUEvUcHJSUHRUFfRysDCwNxAQUkBCgQkghNLgCKlaakA3eAU6gplbmRzdHJlYW0KZW5kb2JqCjMgMCBvYmoKMTA5CmVuZG9iagoxIDAgb2JqCjw8L1R5cGUvUGFnZS9QYXJlbnQgNCAwIFIvUmVzb3VyY2VzIDUgMCBSL01lZGlhQm94WzAgMCA2MTIgNzkyXS9Db250ZW50cyAyIDAgUj4+CmVuZG9iago1IDAgb2JqCjw8L1Byb2NTZXRbL1BERi9UZXh0XT4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUvUGFnZXMvQ291bnQgMS9LaWRzWzEgMCBSXT4+CmVuZG9iago2IDAgb2JqCjw8L1R5cGUvQ2F0YWxvZy9QYWdlcyA0IDAgUj4+CmVuZG9iago3IDAgb2JqCjw8L1Byb2R1Y2VyKFJlcG9ydExhYik+PgplbmRvYmoKeHJlZgowIDgKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMjE2IDAwMDAwIG4gCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDE5NyAwMDAwMCBuIAowMDAwMDAwMzI1IDAwMDAwIG4gCjAwMDAwMDAyOTAgMDAwMDAgbiAKMDAwMDAwMDM4MiAwMDAwMCBuIAowMDAwMDAwNDI3IDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA4L1Jvb3QgNiAwIFIvSW5mbyA3IDAgUj4+CnN0YXJ0eHJlZgo0NzIKJSVFT0YK\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/documents/sign",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"documents",
+						"sign"
+					]
+				},
+				"description": "Envía el payload JSON oficial. Extrae automáticamente trackingId, publicAccessId y documentId para los siguientes requests."
+			},
+			"response": []
+		},
+		{
+			"name": "2. Consultar Detalle y Estado (GET /api/v1/documents/:id)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/documents/{{trackingId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"documents",
+						"{{trackingId}}"
+					]
+				},
+				"description": "Permite consultar el estado actual del trámite (IN_PROCESS, COMPLETED, etc.)."
+			},
+			"response": []
+		},
+		{
+			"name": "3. Endpoint 2: Simular Webhook Callback (POST /api/v1/firmagob/callback)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"publicAccessId\": \"{{publicAccessId}}\",\n  \"action\": \"SIGN\",\n  \"status\": \"COMPLETED\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/firmagob/callback",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"firmagob",
+						"callback"
+					]
+				},
+				"description": "Endpoint 2 oficial donde OGTIC notifica la firma completada. Responde 200 OK en < 5s y lanza la descarga en background."
+			},
+			"response": []
+		},
+		{
+			"name": "4. Descargar Documento Firmado (GET /api/v1/documents/:id/download)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/documents/{{trackingId}}/download",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"documents",
+						"{{trackingId}}",
+						"download"
+					]
+				},
+				"description": "Descarga el archivo PDF con el sello digital estampado. En Postman usa 'Send and Download' para guardarlo."
+			},
+			"response": []
+		},
+		{
+			"name": "5. Listar Todas las Solicitudes (GET /api/v1/documents)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/documents?limit=20",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"documents"
+					],
+					"query": [
+						{
+							"key": "status",
+							"value": "COMPLETED",
+							"disabled": true
+						},
+						{
+							"key": "limit",
+							"value": "20"
+						}
+					]
+				},
+				"description": "Lista el historial de solicitudes con paginación y filtros opcionales."
+			},
+			"response": []
+		},
+		{
+			"name": "6. Subida Directa de PDF (Multipart Form Data)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": []
+						},
+						{
+							"key": "user_code",
+							"value": "40200000000",
+							"type": "text"
+						},
+						{
+							"key": "reference",
+							"value": "EXP-POSTMAN-002",
+							"type": "text"
+						},
+						{
+							"key": "subject",
+							"value": "Prueba de subida desde Postman",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/v1/documents/upload-and-sign",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"documents",
+						"upload-and-sign"
+					]
+				},
+				"description": "Permite seleccionar un archivo PDF físico de tu computadora sin tener que convertirlo manualmente a Base64."
+			},
+			"response": []
+		}
+	]
+}

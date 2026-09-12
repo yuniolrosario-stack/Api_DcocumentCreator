@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Integración Firma Desatendida & Callback - OGTIC / Firma GOB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-badge">OGTIC</div>
+        <div class="brand-title">
+          <h1>Firma GOB Integration Suite</h1>
+          <span>Firma Desatendida & Webhook Asíncrono (Viafirma Inbox v3)</span>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <div id="connectionStatus" class="status-pill checking">Conectando...</div>
+        <a href="/docs" target="_blank" class="btn-secondary" id="btnSwagger">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Swagger Docs
+        </a>
+      </div>
+    </header>
+
+    <!-- Workflow Progress Bar -->
+    <section class="workflow-section">
+      <div class="workflow-steps">
+        <div class="step-card" id="step1Card">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <h4>Petición Desatendida</h4>
+            <p>POST /api/v3/requests (JSON + Base64)</p>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card" id="step2Card">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <h4>Webhook Callback</h4>
+            <p>POST /api/v1/firmagob/callback (SIGN/COMPLETED)</p>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card" id="step3Card">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <h4>Descarga de PDF</h4>
+            <p>GET /api/v3/documents/{id}/signed (PAdES)</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content Grid -->
+    <main class="main-grid">
+      <!-- Left Column: Form / Request Sender -->
+      <section class="card panel-sender">
+        <div class="card-header">
+          <h2>Enviar Solicitud de Firma</h2>
+          <div class="mode-tabs">
+            <button class="tab-btn active" id="tabUploadBtn" onclick="switchTab('upload')">Subir PDF</button>
+            <button class="tab-btn" id="tabJsonBtn" onclick="switchTab('json')">JSON Oficial</button>
+          </div>
+        </div>
+
+        <!-- Form 1: Direct PDF Upload -->
+        <form id="uploadForm" class="tab-content active" onsubmit="handleUploadSubmit(event)">
+          <div class="form-group">
+            <label for="pdfFile">Archivo PDF a Firmar</label>
+            <div class="file-dropzone" id="dropzone" onclick="document.getElementById('pdfFile').click()">
+              <input type="file" id="pdfFile" accept="application/pdf" style="display:none" onchange="handleFileSelected(this)">
+              <div class="dropzone-content" id="dropzoneContent">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <p id="fileLabel">Arrastra o haz clic para seleccionar un PDF</p>
+                <span class="file-hint">Máx. 25MB - Formato PDF estándar</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="userCode">Código/Cédula Firmante</label>
+              <input type="text" id="userCode" value="40200000000" placeholder="Ej: 40200000000" required>
+            </div>
+            <div class="form-group">
+              <label for="reference">No. Expediente / Ref</label>
+              <input type="text" id="reference" value="EXP-2026-00981" placeholder="Ej: EXP-2026-00981" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="subject">Asunto del Trámite</label>
+            <input type="text" id="subject" value="Firma Desatendida de Documento Oficial" required>
+          </div>
+
+          <button type="submit" class="btn-primary" id="btnSubmitUpload">
+            <span class="btn-text">Iniciar Firma Desatendida</span>
+            <span class="spinner" style="display:none"></span>
+          </button>
+        </form>
+
+        <!-- Form 2: Direct Raw JSON -->
+        <div id="jsonEditorTab" class="tab-content">
+          <div class="form-group">
+            <label for="rawJsonInput">Payload JSON de Entrada</label>
+            <textarea id="rawJsonInput" rows="16" spellcheck="false" class="code-editor"></textarea>
+          </div>
+          <button type="button" class="btn-primary" id="btnSubmitJson" onclick="handleJsonSubmit()">
+            <span class="btn-text">Enviar Payload JSON</span>
+            <span class="spinner" style="display:none"></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Requests Monitor -->
+      <section class="card panel-monitor">
+        <div class="card-header">
+          <h2>Monitor de Solicitudes</h2>
+          <button class="btn-icon" onclick="loadRequests()" title="Actualizar lista">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="requestsTable">
+            <thead>
+              <tr>
+                <th>Referencia</th>
+                <th>Archivo</th>
+                <th>Estado</th>
+                <th>Firma GOB IDs</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="requestsTbody">
+              <tr>
+                <td colspan="5" class="empty-state">No hay solicitudes registradas aún.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Real-time Event Log -->
+        <div class="log-section">
+          <h3>Registro de Actividad en Tiempo Real</h3>
+          <div class="log-terminal" id="activityLogs">
+            <div class="log-entry system">[Sistema] Listo para recibir y procesar firmas.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
